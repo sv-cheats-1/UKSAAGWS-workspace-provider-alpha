@@ -1,4 +1,4 @@
-package hashicups
+package main
 
 import (
 	"context"

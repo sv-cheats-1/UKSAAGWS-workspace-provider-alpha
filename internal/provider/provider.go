@@ -1,57 +1,150 @@
-package provider
+package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	admin "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/option"
 )
 
-func init() {
-	// Set descriptions to support markdown syntax, this will be used in document generation
-	// and the language server.
-	schema.DescriptionKind = schema.StringMarkdown
-
-	// Customize the content of descriptions when output. For example you can add defaults on
-	// to the exported descriptions if present.
-	// schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
-	// 	desc := s.Description
-	// 	if s.Default != nil {
-	// 		desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
-	// 	}
-	// 	return strings.TrimSpace(desc)
-	// }
-}
-
-func New(version string) func() *schema.Provider {
-	return func() *schema.Provider {
-		p := &schema.Provider{
-			DataSourcesMap: map[string]*schema.Resource{
-				"scaffolding_data_source": dataSourceScaffolding(),
-			},
-			ResourcesMap: map[string]*schema.Resource{
-				"scaffolding_resource": resourceScaffolding(),
-			},
-		}
-
-		p.ConfigureContextFunc = configure(version, p)
-
-		return p
+// Retrieve a token, saves the token, then returns the generated client.
+func getClient(config *oauth2.Config) *http.Client {
+	// The file token.json stores the user's access and refresh tokens, and is
+	// created automatically when the authorization flow completes for the first
+	// time.
+	tokFile := "token.json"
+	tok, err := tokenFromFile(tokFile)
+	if err != nil {
+		tok = getTokenFromWeb(config)
+		saveToken(tokFile, tok)
 	}
+	return config.Client(context.Background(), tok)
 }
 
-type apiClient struct {
-	// Add whatever fields, client or connection info, etc. here
-	// you would need to setup to communicate with the upstream
-	// API.
+// Request a token from the web, then returns the retrieved token.
+func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	fmt.Printf("Go to the following link in your browser then type the "+
+		"authorization code: \n%v\n", authURL)
+
+	var authCode string
+	if _, err := fmt.Scan(&authCode); err != nil {
+		log.Fatalf("Unable to read authorization code: %v", err)
+	}
+
+	tok, err := config.Exchange(context.TODO(), authCode)
+	if err != nil {
+		log.Fatalf("Unable to retrieve token from web: %v", err)
+	}
+	return tok
 }
 
-func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	return func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		// Setup a User-Agent for your API client (replace the provider name for yours):
-		// userAgent := p.UserAgent("terraform-provider-scaffolding", version)
-		// TODO: myClient.UserAgent = userAgent
+// Retrieves a token from a local file.
+func tokenFromFile(file string) (*oauth2.Token, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	tok := &oauth2.Token{}
+	err = json.NewDecoder(f).Decode(tok)
+	return tok, err
+}
 
-		return &apiClient{}, nil
+// Saves a token to a file path.
+func saveToken(path string, token *oauth2.Token) {
+	fmt.Printf("Saving credential file to: %s\n", path)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		log.Fatalf("Unable to cache oauth token: %v", err)
+	}
+	defer f.Close()
+	json.NewEncoder(f).Encode(token)
+}
+
+func main() {
+
+	// Create a context (because the libraries we use need it)
+	ctx := context.Background()
+
+	// Read in credentials from a JSON formatted file
+	b, err := ioutil.ReadFile("credentials.json")
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
+	}
+
+	// Unmarshal (unserialize) the string containing credentials in JSON format into a proper Go data structure
+	// If modifying these scopes, delete your previously saved token.json.
+	config, err := google.ConfigFromJSON(b, admin.AdminDirectoryUserReadonlyScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+
+	// Create an API client and configure it using the information from config struct
+	client := getClient(config)
+
+	// Not that client is of the type http.Client, so this is a standard HTTP client,
+	// that is not specific to any particular API
+
+	// We create a client for the specific API using out generic HTTP client as a foundation
+	// That specific API is Workspace Admin API
+	srv, err := admin.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		log.Fatalf("Unable to retrieve directory Client %v", err)
+	}
+
+	// Now we can use the API client to send requests
+	// The API client hopefully implements the following REST resources:
+
+	// Let's get a pointer to the list of all users
+	ptrTOListOFAllUsers := srv.Users.List()
+
+	// We don't want ALL users, we want to filter that list
+	// The way filtering is done, you tell the object representing the "pointer"
+	// to the list of all users, you tell it to "trim itself"
+
+	ptrtToListOfOnlyMyCustomers := ptrTOListOFAllUsers.Customer("my_customer")
+
+	// At this point I have a pointer to a shorter list. It had been filtered to only include my customers.
+	// I keep adding filters.
+
+	// Limit the list to 10 entries max. This is also a filter (type A in, type A out, no additional objects added)
+	ptrToListOfOnly10OfMyCustomers := ptrtToListOfOnlyMyCustomers.MaxResults(10)
+
+	// Let's filter further. Let's order the result by email
+	ptrToListOfOnly10OfMyCustomersORderedByEMail := ptrToListOfOnly10OfMyCustomers.OrderBy("email")
+
+	//Enough filtering, let's read the first page of result from our pointer
+	r, err := ptrToListOfOnly10OfMyCustomersORderedByEMail.Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve users in domain: %v", err)
+	}
+
+	// Of those resources, we use "UsersService" resource
+	// It returns results in a paginated way (only the first page is returned first)
+	// r, err := srv.Users.List().Customer("my_customer").MaxResults(10).
+	//         OrderBy("email").Do()
+	// if err != nil {
+	//         log.Fatalf("Unable to retrieve users in domain: %v", err)
+	// }
+
+	// We can check how many users are in the result list
+	// (even if not all of them are included in the first page)
+	if len(r.Users) == 0 {
+		fmt.Print("No users found.\n")
+	} else {
+		fmt.Print("Users:\n")
+
+		for _, u := range r.Users {
+			fmt.Printf("%s (%s)\n", u.PrimaryEmail, u.Name.FullName)
+		}
 	}
 }
