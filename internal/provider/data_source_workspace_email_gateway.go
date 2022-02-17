@@ -34,15 +34,15 @@ func dataSourceWorkspaceEmailGateway() *schema.Resource {
 
 func dataSourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	domainName := d.Get("domain_name").(string)
+	d.SetId(d.Get("domain_name").(string))
 
 	// TODO request data from REST API and process the result
 
-	if err := d.Set("smart_host", domainName+": TODO smart_host"); err != nil {
+	if err := d.Set("smart_host", "TODO smart_host"); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("smtp_mode", domainName+": TODO smtp_mode"); err != nil {
+	if err := d.Set("smtp_mode", "TODO smtp_mode"); err != nil {
 		return diag.FromErr(err)
 	}
 

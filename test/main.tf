@@ -13,7 +13,7 @@ provider wpa {
 }
 
 data "wpa_email_gateway" "default" {
-  domain_name = "38xck8d5j"
+  domain_name = "cunty.dev"
 }
 
 output "xxx" {
