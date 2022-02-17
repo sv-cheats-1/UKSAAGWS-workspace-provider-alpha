@@ -27,7 +27,7 @@ func New(version string) func() *schema.Provider {
 	return func() *schema.Provider {
 		p := &schema.Provider{
 			DataSourcesMap: map[string]*schema.Resource{
-				"scaffolding_data_source": dataSourceScaffolding(),
+				"wpa_email_gateway": dataSourceWorkspaceEmailGateway(),
 			},
 			/*
 				ResourcesMap: map[string]*schema.Resource{
