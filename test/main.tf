@@ -9,7 +9,7 @@ terraform {
 
 provider wpa {
   # TODO implement optional provider configuration (check hashicups)
-   domain_name = "cunty.dev"
+  #  domain_name = "cunty.dev"
   # customer_id = "C02j7nz6z"
 }
 
