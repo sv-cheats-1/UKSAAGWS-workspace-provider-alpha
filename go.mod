@@ -1,6 +1,6 @@
 module github.com/sv-cheats-1/workspace-provider-alpha
 
-go 1.15
+go 1.16
 
 require (
 	cloud.google.com/go/compute v1.3.0 // indirect
