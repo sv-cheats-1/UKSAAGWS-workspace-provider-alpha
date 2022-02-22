@@ -2,9 +2,15 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"io"
+	"net/http"
 )
+
+// Google Workspace Admin SDK -> Admin Settings API
+const apiEndPoint string = "https://apps-apis.google.com/a/feeds/domain/2.0/%s/email/gateway"
 
 func dataSourceWorkspaceEmailGateway() *schema.Resource {
 	return &schema.Resource{
@@ -34,17 +40,37 @@ func dataSourceWorkspaceEmailGateway() *schema.Resource {
 
 func dataSourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	d.SetId(d.Get("domain_name").(string))
+	domainName := d.Get("domain_name").(string)
+	d.SetId(domainName)
 
-	// TODO request data from REST API and process the result
+	c := meta.(*apiClient)
 
-	if err := d.Set("smart_host", "TODO smart_host"); err != nil {
+	// Send an HTTP request to this legacy API and process the response
+	resp, err := c.client.Get(fmt.Sprintf(apiEndPoint, domainName))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return diag.Errorf("Error in HTTP response. Status code: %v, Status: %v. Full response: %#v", resp.StatusCode, resp.Status, resp)
+	}
+
+	statusCode := ""
+	smtpMode := "TODO smtp_mode"
+
+	// TODO: parse response XML and populate the resource attributes
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	statusCode = string(body)
+
+	if err := d.Set("smart_host", statusCode); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("smtp_mode", "TODO smtp_mode"); err != nil {
+	if err := d.Set("smtp_mode", smtpMode); err != nil {
 		return diag.FromErr(err)
 	}
 
-	return nil
+	return diag.Diagnostics{}
 }
