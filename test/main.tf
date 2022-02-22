@@ -8,9 +8,8 @@ terraform {
 }
 
 provider wpa {
-  # TODO implement optional provider configuration (check hashicups)
-  #  domain_name = "cunty.dev"
-  # customer_id = "C02j7nz6z"
+  customer_id             = "C02c5d94q"
+  impersonated_user_email = "super-admin@cunty.dev"
 }
 
 data "wpa_email_gateway" "default" {
