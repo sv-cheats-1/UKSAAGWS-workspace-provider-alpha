@@ -9,7 +9,7 @@ terraform {
 
 provider wpa {
   customer_id             = "C02j7nz6z"
-  impersonated_user_email = "domain-admin@buttplug.guru"
+  impersonated_user_email = "also.admin@buttplug.guru"
   credentials             = "credentials.json"
 }
 
