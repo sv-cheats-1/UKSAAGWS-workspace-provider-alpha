@@ -8,13 +8,13 @@ terraform {
 }
 
 provider wpa {
-  customer_id             = "C02j7nz6z"
-  impersonated_user_email = "also.admin@buttplug.guru"
+  customer_id             = "C02x7xx6x"
+  impersonated_user_email = "your.email@email.com"
   credentials             = "credentials.json"
 }
 
 data "wpa_email_gateway" "default" {
-  domain_name = "buttplug.guru"
+  domain_name = "your.domain"
 }
 
 output "xxx" {
