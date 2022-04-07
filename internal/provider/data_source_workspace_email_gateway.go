@@ -38,14 +38,13 @@ func dataSourceWorkspaceRead(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.Errorf("Error in HTTP response. Status code: %v, Status: %v. Full response: %#v", resp.StatusCode, resp.Status, resp)
 	}
 
-	
-	// TODO: trim the XML parser struct to only have relevant fields and remove the unnecessary declarations 
+	// TODO: trim the XML parser struct to only have relevant fields and remove the unnecessary declarations
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	 
-	var r Response
+
+	var res Property
 	b_res := []byte(body)
 
 	if err := xml.Unmarshal(b_res, &res); err != nil {
