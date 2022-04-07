@@ -89,6 +89,9 @@ func New(version string) func() *schema.Provider {
 			DataSourcesMap: map[string]*schema.Resource{
 				"wpa_email_gateway": dataSourceWorkspaceEmailGateway(),
 			},
+			ResourcesMap: map[string]*schema.Resource{
+				"wpa_email_gateway": resourceWorkspaceEmailGateway(),
+			},
 		}
 
 		p.ConfigureContextFunc = configure(version, p)
