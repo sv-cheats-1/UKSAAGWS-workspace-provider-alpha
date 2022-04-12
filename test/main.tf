@@ -8,25 +8,23 @@ terraform {
 }
 
 provider wpa {
-  customer_id             = "C01rqf6p6" //"C02j7nz6z"
-  impersonated_user_email = "admin@sellyoursoul.today"
+  customer_id             = "yourcustomerID"
+  impersonated_user_email = "admin@yourdomain.today"
   credentials             = "credentials.json"
 }
 
 
-resource "wpa_email_gateway" "default" {
-  domain_name = "sellyoursoul.today"
+data "wpa_email_gateway" "default" {
+  domain_name = "yourdomain.today"
 }
 
-#output "xxx" {
-#   value = data.wpa_email_gateway.default.smart_host
-#}
-#
-#output "yyy" {
-#   value = data.wpa_email_gateway.default.smtp_mode
-#}
-#
-#output "zzz" {
-#  value = data.wpa_email_gateway.default
-#}
+output "smart_host" {
+  value = data.wpa_email_gateway.default.smart_host
+}
+
+output "smtp_mode" {
+  value = data.wpa_email_gateway.default.smtp_mode
+}
+
+
 
